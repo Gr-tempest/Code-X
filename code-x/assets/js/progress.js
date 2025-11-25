@@ -1,0 +1,243 @@
+// Progress tracking system
+class ProgressTracker {
+    constructor() {
+        this.defaultProgress = {
+            totalXP: 0,
+            level: 1,
+            currentStreak: 0,
+            lastCompleted: null,
+            totalTime: 0, // in minutes
+            completedLevels: {
+                html: [],
+                css: [],
+                js: []
+            },
+            unlockedAchievements: []
+        };
+    }
+
+    getProgress() {
+        const saved = localStorage.getItem('codex-progress');
+        if (saved) {
+            return { ...this.defaultProgress, ...JSON.parse(saved) };
+        }
+        return this.defaultProgress;
+    }
+
+    saveProgress(progress) {
+        localStorage.setItem('codex-progress', JSON.stringify(progress));
+        this.updateDashboard();
+    }
+
+    addXP(amount) {
+        const progress = this.getProgress();
+        progress.totalXP += amount;
+        
+        // Calculate new level (100 XP per level)
+        const newLevel = Math.floor(progress.totalXP / 100) + 1;
+        if (newLevel > progress.level) {
+            progress.level = newLevel;
+        }
+        
+        this.saveProgress(progress);
+        return progress;
+    }
+
+    completeLevel(language, levelNumber) {
+        const progress = this.getProgress();
+        
+        if (!progress.completedLevels[language].includes(levelNumber)) {
+            progress.completedLevels[language].push(levelNumber);
+            
+            // Update streak
+            const today = new Date().toDateString();
+            if (progress.lastCompleted !== today) {
+                progress.currentStreak++;
+                progress.lastCompleted = today;
+            }
+            
+            // Add 10 XP per level
+            progress.totalXP += 10;
+            
+            // Update level
+            progress.level = Math.floor(progress.totalXP / 100) + 1;
+            
+            this.saveProgress(progress);
+            this.checkAchievements();
+        }
+        
+        return progress;
+    }
+
+    checkAchievements() {
+        const progress = this.getProgress();
+        const achievements = this.getAchievements();
+        
+        achievements.forEach(achievement => {
+            if (!progress.unlockedAchievements.includes(achievement.id) && this.isAchievementUnlocked(achievement, progress)) {
+                progress.unlockedAchievements.push(achievement.id);
+                progress.totalXP += achievement.xp;
+                this.showAchievementNotification(achievement);
+            }
+        });
+        
+        this.saveProgress(progress);
+    }
+
+    isAchievementUnlocked(achievement, progress) {
+        switch (achievement.type) {
+            case 'levels_completed':
+                const totalCompleted = progress.completedLevels.html.length + 
+                                     progress.completedLevels.css.length + 
+                                     progress.completedLevels.js.length;
+                return totalCompleted >= achievement.requirement;
+                
+            case 'language_master':
+                return progress.completedLevels[achievement.language].length >= achievement.requirement;
+                
+            case 'streak':
+                return progress.currentStreak >= achievement.requirement;
+                
+            case 'xp_milestone':
+                return progress.totalXP >= achievement.requirement;
+                
+            default:
+                return false;
+        }
+    }
+
+    getAchievements() {
+        // This would typically fetch from achievements.json
+        // For now, return a sample set
+        return [
+            {
+                id: 'first_steps',
+                name: 'First Steps',
+                description: 'Complete your first coding level',
+                icon: '🚀',
+                xp: 25,
+                type: 'levels_completed',
+                requirement: 1
+            },
+            {
+                id: 'html_novice',
+                name: 'HTML Novice',
+                description: 'Complete 10 HTML levels',
+                icon: '📄',
+                xp: 50,
+                type: 'language_master',
+                language: 'html',
+                requirement: 10
+            },
+            {
+                id: 'week_warrior',
+                name: 'Week Warrior',
+                description: 'Maintain a 7-day streak',
+                icon: '🔥',
+                xp: 100,
+                type: 'streak',
+                requirement: 7
+            },
+            {
+                id: 'code_apprentice',
+                name: 'Code Apprentice',
+                description: 'Reach 500 XP',
+                icon: '⭐',
+                xp: 150,
+                type: 'xp_milestone',
+                requirement: 500
+            }
+        ];
+    }
+
+    showAchievementNotification(achievement) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'achievement-notification';
+        notification.innerHTML = `
+            <div class="achievement-notification-content">
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div class="achievement-text">
+                    <h4>Achievement Unlocked!</h4>
+                    <p>${achievement.name}</p>
+                    <span>+${achievement.xp} XP</span>
+                </div>
+            </div>
+        `;
+        
+        // Add styles
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 1rem;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease;
+            max-width: 300px;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    updateDashboard() {
+        // This would update the dashboard UI
+        // Implementation depends on the specific dashboard structure
+        if (typeof window.updateDashboard === 'function') {
+            window.updateDashboard();
+        }
+    }
+
+    getLevelProgress() {
+        const progress = this.getProgress();
+        return {
+            level: progress.level,
+            totalXP: progress.totalXP,
+            xpToNextLevel: (progress.level * 100) - progress.totalXP,
+            xpPercentage: (progress.totalXP % 100),
+            completedLevels: progress.completedLevels,
+            currentStreak: progress.currentStreak,
+            totalTime: progress.totalTime
+        };
+    }
+}
+
+// Global progress tracker instance
+const progressTracker = new ProgressTracker();
+
+// Helper functions for global access
+function getProgress() {
+    return progressTracker.getProgress();
+}
+
+function saveProgress(progress) {
+    return progressTracker.saveProgress(progress);
+}
+
+function completeLevel(language, levelNumber) {
+    return progressTracker.completeLevel(language, levelNumber);
+}
+
+function addXP(amount) {
+    return progressTracker.addXP(amount);
+}
+
+function updateAchievements() {
+    return progressTracker.checkAchievements();
+}
+
+function isAchievementUnlocked(achievement, progress) {
+    return progressTracker.isAchievementUnlocked(achievement, progress);
+}
+
+// Initialize progress if not exists
+if (!localStorage.getItem('codex-progress')) {
+    progressTracker.saveProgress(progressTracker.defaultProgress);
+}
