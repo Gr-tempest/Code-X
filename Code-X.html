@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Code-X</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>Code<span class="accent">-X</span></h1>
+            </div>
+            <div class="nav-user">
+                <span id="userName">User</span>
+                <button id="logoutBtn" class="btn btn-outline btn-small">Logout</button>
+            </div>
+        </nav>
+
+        <main class="dashboard-main">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <h2>Welcome back, <span id="userGreeting">Coder</span>! 👋</h2>
+                <p>Continue your coding journey or start a new language.</p>
+            </section>
+
+            <!-- XP Progress -->
+            <section class="xp-section">
+                <div class="xp-header">
+                    <h2>Your Coding Journey</h2>
+                    <div class="xp-display">
+                        <span id="currentXP">0</span> XP
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="xpProgress"></div>
+                </div>
+                <div class="level-info">
+                    Level <span id="currentLevel">1</span> • <span id="xpToNext">100</span> XP to next level
+                </div>
+            </section>
+
+            <!-- Language Modules -->
+            <section class="modules-section">
+                <h2>Learn & Practice</h2>
+                <div class="modules-grid">
+                    <div class="module-card html-module">
+                        <div class="module-icon">📄</div>
+                        <h3>HTML</h3>
+                        <p>Structure the web with markup</p>
+                        <div class="module-progress">
+                            <div class="progress-bar small">
+                                <div class="progress-fill" id="htmlProgress"></div>
+                            </div>
+                            <span id="htmlCompleted">0</span>/100
+                        </div>
+                        <button class="btn btn-primary" onclick="startModule('html')">Start Learning</button>
+                    </div>
+
+                    <div class="module-card css-module">
+                        <div class="module-icon">🎨</div>
+                        <h3>CSS</h3>
+                        <p>Style and design beautiful websites</p>
+                        <div class="module-progress">
+                            <div class="progress-bar small">
+                                <div class="progress-fill" id="cssProgress"></div>
+                            </div>
+                            <span id="cssCompleted">0</span>/100
+                        </div>
+                        <button class="btn btn-primary" onclick="startModule('css')">Start Learning</button>
+                    </div>
+
+                    <div class="module-card js-module">
+                        <div class="module-icon">⚡</div>
+                        <h3>JavaScript</h3>
+                        <p>Add interactivity and logic</p>
+                        <div class="module-progress">
+                            <div class="progress-bar small">
+                                <div class="progress-fill" id="jsProgress"></div>
+                            </div>
+                            <span id="jsCompleted">0</span>/100
+                        </div>
+                        <button class="btn btn-primary" onclick="startModule('js')">Start Learning</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Stats -->
+            <section class="stats-section">
+                <h2>Your Progress</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Levels Completed</h3>
+                        <div class="stat-number" id="totalCompleted">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Current Streak</h3>
+                        <div class="stat-number" id="currentStreak">0 days</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Learning Time</h3>
+                        <div class="stat-number" id="totalTime">0h 0m</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Account Created</h3>
+                        <div class="stat-number" id="accountAge">Today</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Achievements -->
+            <section class="achievements-section">
+                <h2>Recent Achievements</h2>
+                <div class="achievements-grid" id="achievementsGrid">
+                    <!-- Achievements will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="progress.js"></script>
+    <script>
+        function startModule(language) {
+            // Directly go to the module page - no login required
+            window.location.href = `${language}-level.html`;
+        }
+
+        function updateDashboard() {
+            const progress = getProgress();
+            const user = JSON.parse(localStorage.getItem('codex-user'));
+            
+            // Update user info
+            document.getElementById('userName').textContent = user?.name || 'Coder';
+            document.getElementById('userGreeting').textContent = user?.name || 'Coder';
+            
+            // Update XP and level
+            document.getElementById('currentXP').textContent = progress.totalXP;
+            document.getElementById('currentLevel').textContent = progress.level;
+            document.getElementById('xpToNext').textContent = progress.xpToNextLevel;
+            document.getElementById('xpProgress').style.width = `${progress.xpPercentage}%`;
+            
+            // Update module progress
+            const htmlCompleted = progress.completedLevels.html.length;
+            const cssCompleted = progress.completedLevels.css.length;
+            const jsCompleted = progress.completedLevels.js.length;
+            
+            document.getElementById('htmlCompleted').textContent = htmlCompleted;
+            document.getElementById('cssCompleted').textContent = cssCompleted;
+            document.getElementById('jsCompleted').textContent = jsCompleted;
+            
+            document.getElementById('htmlProgress').style.width = `${(htmlCompleted / 100) * 100}%`;
+            document.getElementById('cssProgress').style.width = `${(cssCompleted / 100) * 100}%`;
+            document.getElementById('jsProgress').style.width = `${(jsCompleted / 100) * 100}%`;
+            
+            // Update stats
+            document.getElementById('totalCompleted').textContent = htmlCompleted + cssCompleted + jsCompleted;
+            document.getElementById('currentStreak').textContent = `${progress.currentStreak} days`;
+            document.getElementById('totalTime').textContent = `${Math.floor(progress.totalTime / 60)}h ${progress.totalTime % 60}m`;
+            
+            // Calculate account age
+            if (user && user.joined) {
+                const joinedDate = new Date(user.joined);
+                const today = new Date();
+                const diffTime = Math.abs(today - joinedDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                document.getElementById('accountAge').textContent = `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+            }
+            
+            // Load achievements
+            loadAchievements();
+        }
+
+        function loadAchievements() {
+            const progress = getProgress();
+            const achievementsGrid = document.getElementById('achievementsGrid');
+            achievementsGrid.innerHTML = '';
+            
+            // Get achievements from progress system
+            const achievements = progressTracker.getAchievements();
+            const unlocked = achievements.filter(achievement => 
+                isAchievementUnlocked(achievement, progress)
+            ).slice(0, 6); // Show only 6 recent
+            
+            if (unlocked.length === 0) {
+                achievementsGrid.innerHTML = `
+                    <div class="no-achievements-message">
+                        <div class="achievement-icon">🏆</div>
+                        <h4>No achievements yet</h4>
+                        <p>Complete your first level to unlock achievements!</p>
+                    </div>
+                `;
+            } else {
+                unlocked.forEach(achievement => {
+                    const achievementEl = document.createElement('div');
+                    achievementEl.className = 'achievement-card unlocked';
+                    achievementEl.innerHTML = `
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-info">
+                            <h4>${achievement.name}</h4>
+                            <p>${achievement.description}</p>
+                            <span class="achievement-xp">+${achievement.xp} XP</span>
+                        </div>
+                    `;
+                    achievementsGrid.appendChild(achievementEl);
+                });
+            }
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('codex-user');
+            localStorage.removeItem('codex-progress');
+            window.location.href = 'index.html';
+        });
+
+        // Check authentication and initialize
+        window.addEventListener('load', () => {
+            const user = JSON.parse(localStorage.getItem('codex-user'));
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Update last login
+            user.lastLogin = new Date().toISOString();
+            localStorage.setItem('codex-user', JSON.stringify(user));
+            
+            updateDashboard();
+        });
+    </script>
+</body>
+</html>
